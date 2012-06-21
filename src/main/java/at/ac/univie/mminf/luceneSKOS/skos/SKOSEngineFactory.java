@@ -22,6 +22,7 @@ import java.io.InputStream;
 import org.apache.lucene.util.Version;
 
 import at.ac.univie.mminf.luceneSKOS.skos.impl.SKOSEngineImpl;
+import at.ac.univie.mminf.luceneSKOS.skos.impl.TDBSKOSEngineImpl;
 
 /**
  * This factory instantiates the various kinds of SKOSEngine implementations
@@ -74,5 +75,22 @@ public class SKOSEngineFactory {
   public static SKOSEngine getSKOSEngine(final Version version,
       String filenameOrURI, String... languages) throws IOException {
     return new SKOSEngineImpl(version, filenameOrURI, languages);
+  }
+  
+  /**
+   * Sets up a SKOS Engine from a given rdf file (serialized in any rdf
+   * serialization format) and considers only those concept labels that are
+   * defined in the language parameter
+   * 
+   * @param filenameOrURI
+   *          the skos file
+   * @param languages
+   *          the languages to be considered
+   * @return SKOSEngine
+   * @throws IOException
+   */
+  public static SKOSEngine getTDBSKOSEngine(String filenameOrURI,
+      String... languages) throws IOException {
+    return new TDBSKOSEngineImpl(filenameOrURI, languages);
   }
 }
