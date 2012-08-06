@@ -29,6 +29,8 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LogByteSizeMergePolicy;
+import org.apache.lucene.index.LogMergePolicy;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -109,9 +111,14 @@ public final class SKOSAutocompleter {
       }
     };
     
+    LogMergePolicy mp = new LogByteSizeMergePolicy();
+    mp.setMergeFactor(300);
+    
     IndexWriterConfig indexWriterConfig = new IndexWriterConfig(matchVersion,
-        analyzer);
-    indexWriterConfig.setMaxBufferedDocs(150);
+        analyzer).
+        setMaxBufferedDocs(150).
+        setMergePolicy(mp).
+        setOpenMode(IndexWriterConfig.OpenMode.CREATE);
     
     // use a custom analyzer so we can do EdgeNGramFiltering
     IndexWriter writer = new IndexWriter(autoCompleteDirectory,
