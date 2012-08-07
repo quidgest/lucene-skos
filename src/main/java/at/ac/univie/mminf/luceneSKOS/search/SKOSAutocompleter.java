@@ -152,7 +152,7 @@ public final class SKOSAutocompleter {
     // get the top 5 terms for query
     Query query = new TermQuery(new Term(GRAMMED_WORDS_FIELD, word));
     
-    TopDocs docs = autoCompleteSearcher.search(query, null, 5);
+    TopDocs docs = autoCompleteSearcher.search(query, null, numSug);
     List<String> suggestions = new ArrayList<String>();
     for (ScoreDoc doc : docs.scoreDocs) {
       suggestions.add(autoCompleteReader.document(doc.doc).get(
