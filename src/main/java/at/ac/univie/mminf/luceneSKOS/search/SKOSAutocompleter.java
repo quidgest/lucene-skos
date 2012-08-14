@@ -52,6 +52,9 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefIterator;
 import org.apache.lucene.util.Version;
 
+import at.ac.univie.mminf.luceneSKOS.skos.SKOSEngine;
+import at.ac.univie.mminf.luceneSKOS.skos.impl.SKOSEngineImpl;
+
 public final class SKOSAutocompleter {
   
   private final Version matchVersion;
@@ -70,8 +73,13 @@ public final class SKOSAutocompleter {
   
   private Set<String> languages;
   
+  private SKOSEngine skosEngine;
+  
   public SKOSAutocompleter(final Version version, String filenameOrURI,
       String... languages) throws IOException {
+    
+    skosEngine = new SKOSEngineImpl(version, filenameOrURI, languages);
+    
     matchVersion = version;
     
     String langSig = "";
@@ -152,7 +160,13 @@ public final class SKOSAutocompleter {
       Document doc = new Document();
       doc.add(new StringField(SOURCE_WORD_FIELD, word, Field.Store.YES)); // orig
                                                                           // term
+      doc.add(new TextField(SIMPLE_WORD_FIELD, word, Field.Store.YES)); // tokenized
       doc.add(new TextField(GRAMMED_WORDS_FIELD, word, Field.Store.YES)); // grammed
+      
+      String[] altTerms = skosEngine.getAltTerms(word);
+      for (String alt : altTerms) {
+        doc.add(new TextField(GRAMMED_WORDS_FIELD, alt, Field.Store.YES)); // grammed
+      }
       writer.addDocument(doc);
     }
     
@@ -169,15 +183,14 @@ public final class SKOSAutocompleter {
     Query queryLax;
     try {
       // TODO: Use seperate field for this
-      queryExact = new TermQuery(new Term(SOURCE_WORD_FIELD, word));
-      //queryParser.parse(word, SOURCE_WORD_FIELD);
+      queryExact = queryParser.parse(word, SIMPLE_WORD_FIELD);
       queryLax = queryParser.parse(word, GRAMMED_WORDS_FIELD);
       // Query query = new TermQuery(new Term(GRAMMED_WORDS_FIELD, word));
     } catch (QueryNodeException e) {
       return new String[0];
     }
     
-    queryExact.setBoost(10);
+    queryExact.setBoost(5);
     
     BooleanQuery query = new BooleanQuery();
     query.add(queryExact, Occur.SHOULD);
