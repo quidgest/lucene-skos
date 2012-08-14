@@ -35,6 +35,8 @@ import org.apache.lucene.index.LogMergePolicy;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
+import org.apache.lucene.search.BooleanClause.Occur;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -154,14 +156,23 @@ public final class SKOSAutocompleter {
   public String[] suggestSimilar(String word, int numSug) throws IOException {
     // get the top 5 terms for query
     StandardQueryParser queryParser = new StandardQueryParser(new StandardAnalyzer(matchVersion));
-    Query query;
+    Query queryExact;
+    Query queryLax;
     try {
-      query = queryParser.parse(word, GRAMMED_WORDS_FIELD);
-      
+      // TODO: Use seperate field for this
+      queryExact = new TermQuery(new Term(SOURCE_WORD_FIELD, word));
+      //queryParser.parse(word, SOURCE_WORD_FIELD);
+      queryLax = queryParser.parse(word, GRAMMED_WORDS_FIELD);
       // Query query = new TermQuery(new Term(GRAMMED_WORDS_FIELD, word));
     } catch (QueryNodeException e) {
       return new String[0];
     }
+    
+    queryExact.setBoost(10);
+    
+    BooleanQuery query = new BooleanQuery();
+    query.add(queryExact, Occur.SHOULD);
+    query.add(queryLax, Occur.SHOULD);
     
     TopDocs docs = autoCompleteSearcher.search(query, null, numSug);
     List<String> suggestions = new ArrayList<String>();
