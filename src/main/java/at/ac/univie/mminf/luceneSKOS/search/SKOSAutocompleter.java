@@ -18,6 +18,7 @@ import org.apache.lucene.analysis.core.StopFilter;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.ngram.EdgeNGramTokenFilter;
 import org.apache.lucene.analysis.ngram.EdgeNGramTokenFilter.Side;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.standard.StandardFilter;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.document.Document;
@@ -32,6 +33,8 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LogByteSizeMergePolicy;
 import org.apache.lucene.index.LogMergePolicy;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
+import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -150,7 +153,15 @@ public final class SKOSAutocompleter {
   
   public String[] suggestSimilar(String word, int numSug) throws IOException {
     // get the top 5 terms for query
-    Query query = new TermQuery(new Term(GRAMMED_WORDS_FIELD, word));
+    StandardQueryParser queryParser = new StandardQueryParser(new StandardAnalyzer(matchVersion));
+    Query query;
+    try {
+      query = queryParser.parse(word, GRAMMED_WORDS_FIELD);
+      
+      // Query query = new TermQuery(new Term(GRAMMED_WORDS_FIELD, word));
+    } catch (QueryNodeException e) {
+      return new String[0];
+    }
     
     TopDocs docs = autoCompleteSearcher.search(query, null, numSug);
     List<String> suggestions = new ArrayList<String>();
