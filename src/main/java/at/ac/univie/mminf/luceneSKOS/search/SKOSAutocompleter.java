@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -16,6 +18,7 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.LowerCaseFilter;
 import org.apache.lucene.analysis.core.StopFilter;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
+import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
 import org.apache.lucene.analysis.ngram.EdgeNGramTokenFilter;
 import org.apache.lucene.analysis.ngram.EdgeNGramTokenFilter.Side;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -54,6 +57,8 @@ public final class SKOSAutocompleter {
   private final Version matchVersion;
   
   private static final String GRAMMED_WORDS_FIELD = "words";
+  
+  private static final String SIMPLE_WORD_FIELD = "simpleWord";
   
   private static final String SOURCE_WORD_FIELD = "sourceWord";
   
@@ -99,7 +104,7 @@ public final class SKOSAutocompleter {
     LuceneDictionary dict = new LuceneDictionary(sourceReader,
         fieldToAutocomplete);
     
-    Analyzer analyzer = new Analyzer() {
+    Analyzer analyzerEdge = new Analyzer() {
       
       @Override
       protected TokenStreamComponents createComponents(String fieldName,
@@ -115,6 +120,10 @@ public final class SKOSAutocompleter {
         return new TokenStreamComponents(src, tok);
       }
     };
+    
+    Map<String,Analyzer> analyzerPerField = new HashMap<String,Analyzer>();
+    analyzerPerField.put(GRAMMED_WORDS_FIELD, analyzerEdge);
+    Analyzer analyzer = new PerFieldAnalyzerWrapper(new StandardAnalyzer(matchVersion), analyzerPerField);
     
     LogMergePolicy mp = new LogByteSizeMergePolicy();
     mp.setMergeFactor(300);
