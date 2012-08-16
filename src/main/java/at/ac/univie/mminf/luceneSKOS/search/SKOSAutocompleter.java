@@ -21,7 +21,6 @@ import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
 import org.apache.lucene.analysis.ngram.EdgeNGramTokenFilter;
 import org.apache.lucene.analysis.ngram.EdgeNGramTokenFilter.Side;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.standard.StandardFilter;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.document.Document;
@@ -35,7 +34,6 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LogByteSizeMergePolicy;
 import org.apache.lucene.index.LogMergePolicy;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.apache.lucene.search.BooleanClause.Occur;
@@ -43,7 +41,6 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.spell.LuceneDictionary;
 import org.apache.lucene.store.Directory;
@@ -131,7 +128,7 @@ public final class SKOSAutocompleter {
     
     Map<String,Analyzer> analyzerPerField = new HashMap<String,Analyzer>();
     analyzerPerField.put(GRAMMED_WORDS_FIELD, analyzerEdge);
-    Analyzer analyzer = new PerFieldAnalyzerWrapper(new StandardAnalyzer(matchVersion), analyzerPerField);
+    Analyzer analyzer = new PerFieldAnalyzerWrapper(new EnglishAnalyzer(matchVersion), analyzerPerField);
     
     LogMergePolicy mp = new LogByteSizeMergePolicy();
     mp.setMergeFactor(300);
@@ -178,7 +175,7 @@ public final class SKOSAutocompleter {
   
   public String[] suggestSimilar(String word, int numSug) throws IOException {
     // get the top 5 terms for query
-    StandardQueryParser queryParser = new StandardQueryParser(new StandardAnalyzer(matchVersion));
+    StandardQueryParser queryParser = new StandardQueryParser(new EnglishAnalyzer(matchVersion));
     Query queryExact;
     Query queryLax;
     try {
