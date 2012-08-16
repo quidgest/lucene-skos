@@ -59,6 +59,8 @@ public final class SKOSAutocompleter {
   
   private static final String SOURCE_WORD_FIELD = "sourceWord";
   
+  private static final boolean enabledAlternatives = false;
+  
   private Directory autoCompleteDirectory;
   
   private IndexReader autoCompleteReader;
@@ -150,9 +152,11 @@ public final class SKOSAutocompleter {
       doc.add(new TextField(SIMPLE_WORD_FIELD, word, Field.Store.YES)); // tokenized
       doc.add(new TextField(GRAMMED_WORDS_FIELD, word, Field.Store.YES)); // grammed
       
-      String[] altTerms = sourceDoc.getValues("alt");
-      for (String alt : altTerms) {
-        doc.add(new TextField(GRAMMED_WORDS_FIELD, alt, Field.Store.YES)); // grammed
+      if (enabledAlternatives ) {
+        String[] altTerms = sourceDoc.getValues("alt");
+        for (String alt : altTerms) {
+          doc.add(new TextField(GRAMMED_WORDS_FIELD, alt, Field.Store.YES)); // grammed
+        }
       }
       
       writer.addDocument(doc);
