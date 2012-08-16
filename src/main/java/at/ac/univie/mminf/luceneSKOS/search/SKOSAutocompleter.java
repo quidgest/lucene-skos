@@ -77,7 +77,7 @@ public final class SKOSAutocompleter {
     matchVersion = version;
     
     String langSig = "";
-    if (languages != null) {
+    if (languages != null && languages.length > 0) {
       this.languages = new TreeSet<String>(Arrays.asList(languages));
       langSig = "-" + StringUtils.join(this.languages, ".");
     }
