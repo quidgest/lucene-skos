@@ -42,11 +42,8 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.spell.LuceneDictionary;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.BytesRefIterator;
 import org.apache.lucene.util.Version;
 
 import at.ac.univie.mminf.luceneSKOS.skos.SKOSEngine;
@@ -92,7 +89,7 @@ public final class SKOSAutocompleter {
       File dir = new File("skosdata/" + name + langSig);
       Directory indexDir = FSDirectory.open(dir);
       this.autoCompleteDirectory = FSDirectory.open(compldataDir);
-      reIndex(indexDir, "pref");
+      reIndex(indexDir);
     }
     
     this.autoCompleteDirectory = FSDirectory.open(compldataDir);
@@ -101,13 +98,9 @@ public final class SKOSAutocompleter {
     autoCompleteSearcher = new IndexSearcher(autoCompleteReader);
   }
   
-  public void reIndex(Directory sourceDirectory, String fieldToAutocomplete)
+  public void reIndex(Directory sourceDirectory)
       throws CorruptIndexException, IOException {
-    // build a dictionary (from the spell package)
     IndexReader sourceReader = DirectoryReader.open(sourceDirectory);
-    
-    LuceneDictionary dict = new LuceneDictionary(sourceReader,
-        fieldToAutocomplete);
     
     Analyzer analyzerEdge = new Analyzer() {
       
@@ -143,16 +136,13 @@ public final class SKOSAutocompleter {
     IndexWriter writer = new IndexWriter(autoCompleteDirectory,
         indexWriterConfig);
     
-    BytesRefIterator iter = dict.getWordsIterator();
-    BytesRef bytesRef;
-    while ((bytesRef = iter.next()) != null) {
-      String word = bytesRef.utf8ToString();
+    for (int i=0; i < sourceReader.maxDoc(); i++) {
+      Document sourceDoc = sourceReader.document(i);
       
-      int len = word.length();
-      if (len < 3) {
-        continue; // too short we bail but "too long" is fine...
-      }
-    
+      String[] prefTerms = sourceDoc.getValues("pref");
+      
+      String word = prefTerms[0];
+      
       // ok index the word
       Document doc = new Document();
       doc.add(new StringField(SOURCE_WORD_FIELD, word, Field.Store.YES)); // orig
@@ -160,10 +150,11 @@ public final class SKOSAutocompleter {
       doc.add(new TextField(SIMPLE_WORD_FIELD, word, Field.Store.YES)); // tokenized
       doc.add(new TextField(GRAMMED_WORDS_FIELD, word, Field.Store.YES)); // grammed
       
-      String[] altTerms = skosEngine.getAltTerms(word);
+      String[] altTerms = sourceDoc.getValues("alt");
       for (String alt : altTerms) {
         doc.add(new TextField(GRAMMED_WORDS_FIELD, alt, Field.Store.YES)); // grammed
       }
+      
       writer.addDocument(doc);
     }
     
