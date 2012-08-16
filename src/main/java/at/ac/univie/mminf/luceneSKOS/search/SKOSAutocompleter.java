@@ -60,7 +60,7 @@ public final class SKOSAutocompleter {
   
   private static final String SOURCE_WORD_FIELD = "sourceWord";
   
-  private static final boolean enabledAlternatives = false;
+  private static final boolean enabledAlternatives = true;
   
   private Directory autoCompleteDirectory;
   
@@ -148,14 +148,15 @@ public final class SKOSAutocompleter {
       
       // ok index the word
       Document doc = new Document();
-      doc.add(new StringField(SOURCE_WORD_FIELD, word, Field.Store.YES)); // orig
-                                                                          // term
+      doc.add(new StringField(SOURCE_WORD_FIELD, word, Field.Store.YES)); // orig term
       doc.add(new TextField(SIMPLE_WORD_FIELD, word, Field.Store.YES)); // tokenized
       doc.add(new TextField(GRAMMED_WORDS_FIELD, word, Field.Store.YES)); // grammed
       
       if (enabledAlternatives ) {
         String[] altTerms = sourceDoc.getValues("alt");
         for (String alt : altTerms) {
+          // doc.add(new StringField(SOURCE_WORD_FIELD, alt, Field.Store.YES)); // orig term
+          // doc.add(new TextField(SIMPLE_WORD_FIELD, alt, Field.Store.YES)); // tokenized
           doc.add(new TextField(GRAMMED_WORDS_FIELD, alt, Field.Store.YES)); // grammed
         }
       }
@@ -192,8 +193,11 @@ public final class SKOSAutocompleter {
     TopDocs docs = autoCompleteSearcher.search(query, null, numSug);
     List<String> suggestions = new ArrayList<String>();
     for (ScoreDoc doc : docs.scoreDocs) {
-      suggestions.add(autoCompleteReader.document(doc.doc).get(
-          SOURCE_WORD_FIELD));
+      Document d = autoCompleteReader.document(doc.doc);
+      String[] sourceWords = d.getValues(SOURCE_WORD_FIELD);
+      for (String s : sourceWords) {
+        suggestions.add(s);
+      }
     }
     
     return suggestions.toArray(new String[suggestions.size()]);
