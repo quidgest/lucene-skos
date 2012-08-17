@@ -37,6 +37,7 @@ import org.apache.lucene.index.LogByteSizeMergePolicy;
 import org.apache.lucene.index.LogMergePolicy;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
+import org.apache.lucene.queryparser.flexible.standard.config.StandardQueryConfigHandler.Operator;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
@@ -173,6 +174,7 @@ public final class SKOSAutocompleter {
   public String[] suggestSimilar(String word, int numSug) throws IOException {
     // get the top 5 terms for query
     StandardQueryParser queryParser = new StandardQueryParser(new StandardAnalyzer(matchVersion));
+    queryParser.setDefaultOperator(Operator.AND);
     Query queryExact;
     Query queryLax;
     try {
@@ -191,6 +193,8 @@ public final class SKOSAutocompleter {
     query.add(queryLax, Occur.SHOULD);
     
     TopDocs docs = autoCompleteSearcher.search(query, null, numSug);
+    int hits = docs.totalHits;
+    
     List<String> suggestions = new ArrayList<String>();
     for (ScoreDoc doc : docs.scoreDocs) {
       Document d = autoCompleteReader.document(doc.doc);
@@ -199,6 +203,9 @@ public final class SKOSAutocompleter {
         suggestions.add(s);
       }
     }
+    
+    // Add count to the end of the list
+    suggestions.add(String.valueOf(hits));
     
     return suggestions.toArray(new String[suggestions.size()]);
   }
