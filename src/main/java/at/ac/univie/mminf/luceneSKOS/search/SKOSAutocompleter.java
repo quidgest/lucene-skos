@@ -3,10 +3,9 @@ package at.ac.univie.mminf.luceneSKOS.search;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -148,25 +147,30 @@ public final class SKOSAutocompleter {
       if (prefTerms.length == 0)
         continue;
       
-      Document doc = new Document();
+      String[] altTerms = sourceDoc.getValues("alt");
       
-      // ok index the word
       for (String pref : prefTerms) {
+      
+        Document doc = new Document();
+        
+        // ok index the word
+      
         doc.add(new StringField(SOURCE_WORD_FIELD, pref, Field.Store.YES)); // orig term
-        doc.add(new TextField(SIMPLE_WORD_FIELD, pref, Field.Store.YES)); // tokenized
         doc.add(new TextField(GRAMMED_WORDS_FIELD, pref, Field.Store.YES)); // grammed
-      }
-      
-      if (enabledAlternatives ) {
-        String[] altTerms = sourceDoc.getValues("alt");
-        for (String alt : altTerms) {
-          // doc.add(new StringField(SOURCE_WORD_FIELD, alt, Field.Store.YES)); // orig term
-          // doc.add(new TextField(SIMPLE_WORD_FIELD, alt, Field.Store.YES)); // tokenized
-          doc.add(new TextField(GRAMMED_WORDS_FIELD, alt, Field.Store.YES)); // grammed
+        
+        // add other languages syns
+        for (String pref1 : prefTerms) {
+          doc.add(new TextField(SIMPLE_WORD_FIELD, pref1, Field.Store.YES)); // tokenized
         }
+        
+        if (enabledAlternatives ) {
+          for (String alt : altTerms) {
+            doc.add(new TextField(SIMPLE_WORD_FIELD, alt, Field.Store.YES)); // tokenized
+          }
+        }
+        
+        writer.addDocument(doc);
       }
-      
-      writer.addDocument(doc);
     }
     
     sourceReader.close();
@@ -176,7 +180,7 @@ public final class SKOSAutocompleter {
   }
   
   public String[] suggestSimilar(String word, int numSug) throws IOException {
-    // get the top 5 terms for query
+    // get the top terms for query
     StandardQueryParser queryParser = new StandardQueryParser(new StandardAnalyzer(matchVersion));
     queryParser.setDefaultOperator(Operator.AND);
     Query queryExact;
@@ -199,13 +203,11 @@ public final class SKOSAutocompleter {
     TopDocs docs = autoCompleteSearcher.search(query, null, numSug);
     int hits = docs.totalHits;
     
-    List<String> suggestions = new ArrayList<String>();
+    LinkedHashSet<String> suggestions = new LinkedHashSet<String>();
     for (ScoreDoc doc : docs.scoreDocs) {
       Document d = autoCompleteReader.document(doc.doc);
-      String[] sourceWords = d.getValues(SOURCE_WORD_FIELD);
-      for (String s : sourceWords) {
-        suggestions.add(s);
-      }
+      String sourceWord = d.get(SOURCE_WORD_FIELD);
+      suggestions.add(sourceWord);
     }
     
     // Add count to the end of the list
