@@ -76,6 +76,7 @@ public final class SKOSAutocompleter {
   public SKOSAutocompleter(final Version version, String filenameOrURI,
       String... languages) throws IOException {
     
+    // Makes sure we have a source!
     skosEngine = new SKOSEngineImpl(version, filenameOrURI, languages);
     
     matchVersion = version;
@@ -144,14 +145,17 @@ public final class SKOSAutocompleter {
       Document sourceDoc = sourceReader.document(i);
       
       String[] prefTerms = sourceDoc.getValues("pref");
+      if (prefTerms.length == 0)
+        continue;
       
-      String word = prefTerms[0];
+      Document doc = new Document();
       
       // ok index the word
-      Document doc = new Document();
-      doc.add(new StringField(SOURCE_WORD_FIELD, word, Field.Store.YES)); // orig term
-      doc.add(new TextField(SIMPLE_WORD_FIELD, word, Field.Store.YES)); // tokenized
-      doc.add(new TextField(GRAMMED_WORDS_FIELD, word, Field.Store.YES)); // grammed
+      for (String pref : prefTerms) {
+        doc.add(new StringField(SOURCE_WORD_FIELD, pref, Field.Store.YES)); // orig term
+        doc.add(new TextField(SIMPLE_WORD_FIELD, pref, Field.Store.YES)); // tokenized
+        doc.add(new TextField(GRAMMED_WORDS_FIELD, pref, Field.Store.YES)); // grammed
+      }
       
       if (enabledAlternatives ) {
         String[] altTerms = sourceDoc.getValues("alt");
