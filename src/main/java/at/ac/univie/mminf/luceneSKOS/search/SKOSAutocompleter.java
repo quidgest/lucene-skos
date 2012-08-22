@@ -17,10 +17,10 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.LowerCaseFilter;
 import org.apache.lucene.analysis.core.StopFilter;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
+import org.apache.lucene.analysis.miscellaneous.ASCIIFoldingFilter;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
 import org.apache.lucene.analysis.ngram.EdgeNGramTokenFilter;
 import org.apache.lucene.analysis.ngram.EdgeNGramTokenFilter.Side;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.standard.StandardFilter;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.document.Document;
@@ -72,6 +72,27 @@ public final class SKOSAutocompleter {
   
   private SKOSEngine skosEngine;
   
+  public class AnalyzerSimple extends Analyzer {
+    private final Version matchVersion;
+    
+    public AnalyzerSimple(Version matchVersion) {
+      this.matchVersion = matchVersion;
+    }
+
+    @Override
+    protected TokenStreamComponents createComponents(String fieldName,
+        Reader reader) {
+      final StandardTokenizer src = new StandardTokenizer(matchVersion, reader);
+      TokenStream tok = new StandardFilter(matchVersion, src);
+      tok = new StandardFilter(matchVersion, tok);
+      tok = new LowerCaseFilter(matchVersion, tok);
+      tok = new StopFilter(matchVersion, tok,
+          EnglishAnalyzer.getDefaultStopSet());
+      tok = new ASCIIFoldingFilter(tok);
+      return new TokenStreamComponents(src, tok);
+    }
+  }
+  
   public SKOSAutocompleter(final Version version, String filenameOrURI,
       String... languages) throws IOException {
     
@@ -118,6 +139,7 @@ public final class SKOSAutocompleter {
         tok = new LowerCaseFilter(matchVersion, tok);
         tok = new StopFilter(matchVersion, tok,
             EnglishAnalyzer.getDefaultStopSet());
+        tok = new ASCIIFoldingFilter(tok);
         tok = new EdgeNGramTokenFilter(tok, Side.FRONT, 1, 20);
         return new TokenStreamComponents(src, tok);
       }
@@ -125,7 +147,7 @@ public final class SKOSAutocompleter {
     
     Map<String,Analyzer> analyzerPerField = new HashMap<String,Analyzer>();
     analyzerPerField.put(GRAMMED_WORDS_FIELD, analyzerEdge);
-    Analyzer analyzer = new PerFieldAnalyzerWrapper(new StandardAnalyzer(matchVersion), analyzerPerField);
+    Analyzer analyzer = new PerFieldAnalyzerWrapper(new AnalyzerSimple(matchVersion), analyzerPerField);
     
     LogMergePolicy mp = new LogByteSizeMergePolicy();
     mp.setMergeFactor(300);
@@ -181,7 +203,7 @@ public final class SKOSAutocompleter {
   
   public String[] suggestSimilar(String word, int numSug) throws IOException {
     // get the top terms for query
-    StandardQueryParser queryParser = new StandardQueryParser(new StandardAnalyzer(matchVersion));
+    StandardQueryParser queryParser = new StandardQueryParser(new AnalyzerSimple(matchVersion));
     queryParser.setDefaultOperator(Operator.AND);
     Query queryExact;
     Query queryLax;
