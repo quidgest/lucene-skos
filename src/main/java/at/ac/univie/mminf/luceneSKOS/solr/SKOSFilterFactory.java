@@ -41,7 +41,12 @@ import at.ac.univie.mminf.luceneSKOS.skos.SKOSEngineFactory;
 public class SKOSFilterFactory extends TokenFilterFactory implements
     ResourceLoaderAware {
   
-  private ExpansionType expansionType;
+  protected SKOSFilterFactory(Map<String, String> args) {
+		super(args);
+		assureMatchVersion();
+	}
+
+private ExpansionType expansionType;
   
   private int bufferSize;
   
@@ -50,14 +55,10 @@ public class SKOSFilterFactory extends TokenFilterFactory implements
   private SKOSEngine skosEngine;
   
   @Override
-  public void init(Map<String,String> args) {
-    super.init(args);
-    assureMatchVersion();
-  }
-  
-  @Override
   public void inform(ResourceLoader loader) {
     SolrResourceLoader solrLoader = (SolrResourceLoader) loader;
+    
+    Map<String, String> args = getOriginalArgs();
     
     String skosFile = args.get("skosFile");
     

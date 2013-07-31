@@ -140,7 +140,7 @@ public final class SKOSAutocompleter {
         tok = new StopFilter(matchVersion, tok,
             EnglishAnalyzer.getDefaultStopSet());
         tok = new ASCIIFoldingFilter(tok);
-        tok = new EdgeNGramTokenFilter(tok, Side.FRONT, 1, 20);
+        tok = new EdgeNGramTokenFilter(matchVersion, tok, Side.FRONT, 1, 20);
         return new TokenStreamComponents(src, tok);
       }
     };
